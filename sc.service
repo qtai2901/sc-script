@@ -1,5 +1,5 @@
 [Unit]
-Description=V2bX Service
+Description=sc Service
 After=network.target nss-lookup.target
 Wants=network.target
 
