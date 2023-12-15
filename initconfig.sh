@@ -11,10 +11,10 @@ check_ipv6_support() {
 }
 
 add_node_config() {
-    echo -e "${green}Vui lòng chọn loại core：${plain}"
+    echo -e "${green}请选择节点核心类型：${plain}"
     echo -e "${green}1. xray${plain}"
     echo -e "${green}2. singbox${plain}"
-    read -rp "Vui lòng nhập：" core_type
+    read -rp "请输入：" core_type
     if [ "$core_type" == "1" ]; then
         core="xray"
         core_xray=true
@@ -22,7 +22,7 @@ add_node_config() {
         core="sing"
         core_sing=true
     else
-        echo "Lựa chọn không hợp lệ. Vui lòng chọn 1 hoặc 2."
+        echo "无效的选择。请选择 1 或 2。"
         continue
     fi
     while true; do
@@ -31,11 +31,11 @@ add_node_config() {
         if [[ "$NodeID" =~ ^[0-9]+$ ]]; then
             break  # 输入正确，退出循环
         else
-            echo "Lỗi: Vui lòng nhập đúng số làm Node ID。"
+            echo "错误：请输入正确的数字作为Node ID。"
         fi
     done
     
-    echo -e "${yellow}Vui lòng chọn một giao thức vận chuyển nút：${plain}"
+    echo -e "${yellow}请选择节点传输协议：${plain}"
     echo -e "${green}1. Shadowsocks${plain}"
     echo -e "${green}2. Vless${plain}"
     echo -e "${green}3. Vmess${plain}"
@@ -43,7 +43,7 @@ add_node_config() {
     echo -e "${green}5. Hysteria2${plain}"
     echo -e "${green}6. Tuic${plain}"
     echo -e "${green}7. Trojan${plain}"
-    read -rp "Loại nút：" NodeType
+    read -rp "请输入：" NodeType
     case "$NodeType" in
         1 ) NodeType="shadowsocks" ;;
         2 ) NodeType="vless" ;;
@@ -55,19 +55,27 @@ add_node_config() {
         * ) NodeType="shadowsocks" ;;
     esac
     if [ $NodeType == "vless" ]; then
-        read -rp "Có bật reality không？(y/n)" isreality
+        read -rp "请选择是否为reality节点？(y/n)" isreality
     fi
     certmode="none"
     certdomain="example.com"
     if [ "$isreality" != "y" ] && [ "$isreality" != "Y" ]; then
-        read -rp "Bật TLS？(y/n)" istls
+        read -rp "请选择是否进行TLS配置？(y/n)" istls
         if [ "$istls" == "y" ] || [ "$istls" == "Y" ]; then
-            
-            
-              certmode="file" 
-             certdomain="8.8.8.8"
-          
-            
+            echo -e "${yellow}请选择证书申请模式：${plain}"
+            echo -e "${green}1. http模式自动申请，节点域名已正确解析${plain}"
+            echo -e "${green}2. dns模式自动申请，需填入正确域名服务商API参数${plain}"
+            echo -e "${green}3. self模式，自签证书或提供已有证书文件${plain}"
+            read -rp "请输入：" certmode
+            case "$certmode" in
+                1 ) certmode="http" ;;
+                2 ) certmode="dns" ;;
+                3 ) certmode="self" ;;
+            esac
+            read -rp "请输入节点证书域名(example.com)]：" certdomain
+            if [ $certmode != "http" ]; then
+                echo -e "${red}请手动修改配置文件后重启sc！${plain}"
+            fi
         fi
     fi
     ipv6_support=$(check_ipv6_support)
@@ -142,17 +150,17 @@ EOF
 }
 
 generate_config_file() {
-    # echo -e "${yellow}Trình hướng dẫn tạo tệp cấu hình sc${plain}"
-    # echo -e "${red}请阅读以下注意事项：${plain}"
-    # echo -e "${red}1. 目前该功能正处测试阶段${plain}"
-    # echo -e "${red}2. 生成的配置文件会保存到 /etc/sc/config.json${plain}"
-    # echo -e "${red}3. 原来的配置文件会保存到 /etc/sc/config.json.bak${plain}"
-    # echo -e "${red}4. 目前仅部分支持TLS${plain}"
-    # echo -e "${red}5. 使用此功能生成的配置文件会自带审计，确定继续？(y/n)${plain}"
-    # read -rp "请输入：" continue_prompt
-    # if [[ "$continue_prompt" =~ ^[Nn][Oo]? ]]; then
-    #     exit 0
-    # fi
+    echo -e "${yellow}sc 配置文件生成向导${plain}"
+    echo -e "${red}请阅读以下注意事项：${plain}"
+    echo -e "${red}1. 目前该功能正处测试阶段${plain}"
+    echo -e "${red}2. 生成的配置文件会保存到 /etc/sc/config.json${plain}"
+    echo -e "${red}3. 原来的配置文件会保存到 /etc/sc/config.json.bak${plain}"
+    echo -e "${red}4. 目前仅部分支持TLS${plain}"
+    echo -e "${red}5. 使用此功能生成的配置文件会自带审计，确定继续？(y/n)${plain}"
+    read -rp "请输入：" continue_prompt
+    if [[ "$continue_prompt" =~ ^[Nn][Oo]? ]]; then
+        exit 0
+    fi
     
     nodes_config=()
     first_node=true
@@ -163,22 +171,22 @@ generate_config_file() {
     
     while true; do
         if [ "$first_node" = true ]; then
-            read -rp "Domain(không cần https://)：" ApiHost
-            read -rp "Key web：" ApiKey
-            
-            
+            read -rp "请输入机场网址：" ApiHost
+            read -rp "请输入面板对接API Key：" ApiKey
+            read -rp "是否设置固定的机场网址和API Key？(y/n)" fixed_api
+            if [ "$fixed_api" = "y" ] || [ "$fixed_api" = "Y" ]; then
                 fixed_api_info=true
-                # echo -e "${red}成功固定地址${plain}"
-           
+                echo -e "${red}成功固定地址${plain}"
+            fi
             first_node=false
             add_node_config
         else
-            read -rp "Bạn có muốn tiếp tục thêm cấu hình nút không? (Nhấn enter để tiếp tục, nhập n hoặc không để thoát)" continue_adding_node
+            read -rp "是否继续添加节点配置？(回车继续，输入n或no退出)" continue_adding_node
             if [[ "$continue_adding_node" =~ ^[Nn][Oo]? ]]; then
                 break
             elif [ "$fixed_api_info" = false ]; then
-                read -rp "Domain(không cần https://)：" ApiHost
-                read -rp "Key web：" ApiKey
+                read -rp "请输入机场网址：" ApiHost
+                read -rp "请输入面板对接API Key：" ApiKey
             fi
             add_node_config
         fi
@@ -423,7 +431,7 @@ EOF
 }
 EOF
 
-    echo -e "${green}sc Quá trình tạo tệp cấu hình đã hoàn tất và dịch vụ đang được khởi động lại.${plain}"
+    echo -e "${green}sc 配置文件生成完成,正在重新启动服务${plain}"
     sc restart
 }
 
