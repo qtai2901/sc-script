@@ -7,15 +7,15 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# kiểm tra root
-[[ $EUID -ne 0 ]] && echo -e "${red}Lỗi：${plain} Script này phải được chạy với quyền người dùng root！\n" && exit 1
+# check root
+[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
 
-# kiểm tra hệ điều hành
+# check os
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
 elif cat /etc/issue | grep -Eqi "alpine"; then
     release="alpine"
-    echo -e "${red}Script không hỗ trợ hệ thống Alpine！${plain}\n" && exit 1
+    echo -e "${red}脚本暂不支持alpine系统！${plain}\n" && exit 1
 elif cat /etc/issue | grep -Eqi "debian"; then
     release="debian"
 elif cat /etc/issue | grep -Eqi "ubuntu"; then
@@ -29,7 +29,7 @@ elif cat /proc/version | grep -Eqi "ubuntu"; then
 elif cat /proc/version | grep -Eqi "centos|red hat|redhat|rocky|alma|oracle linux"; then
     release="centos"
 else
-    echo -e "${red}Không xác định được phiên bản hệ thống, vui lòng liên hệ với tác giả script！${plain}\n" && exit 1
+    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
 
 arch=$(arch)
@@ -42,17 +42,17 @@ elif [[ $arch == "s390x" ]]; then
     arch="s390x"
 else
     arch="64"
-    echo -e "${red}Không xác định được kiến trúc, sử dụng kiến trúc mặc định: ${arch}${plain}"
+    echo -e "${red}检测架构失败，使用默认架构: ${arch}${plain}"
 fi
 
-echo "Kiến trúc: ${arch}"
+echo "架构: ${arch}"
 
 if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
-    echo "Phần mềm này không hỗ trợ hệ thống 32 bit (x86), vui lòng sử dụng hệ thống 64 bit (x86_64), nếu phát hiện không chính xác, vui lòng liên hệ với tác giả"
+    echo "本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者"
     exit 2
 fi
 
-# phiên bản hệ điều hành
+# os version
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
@@ -62,18 +62,18 @@ fi
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}Vui lòng sử dụng CentOS 7 hoặc phiên bản cao hơn！${plain}\n" && exit 1
+        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
     fi
     if [[ ${os_version} -eq 7 ]]; then
-        echo -e "${red}Chú ý： CentOS 7 không hỗ trợ giao thức hysteria1/2！${plain}\n"
+        echo -e "${red}注意： CentOS 7 无法使用hysteria1/2协议！${plain}\n"
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}Vui lòng sử dụng Ubuntu 16 hoặc phiên bản cao hơn！${plain}\n" && exit 1
+        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}Vui lòng sử dụng Debian 8 hoặc phiên bản cao hơn！${plain}\n" && exit 1
+        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
     fi
 fi
 
@@ -91,7 +91,7 @@ install_base() {
     fi
 }
 
-# 0: đang chạy, 1: không chạy, 2: không cài đặt
+# 0: running, 1: not running, 2: not installed
 check_status() {
     if [[ ! -f /etc/systemd/system/sc.service ]]; then
         return 2
@@ -115,22 +115,22 @@ install_sc() {
     if  [ $# == 0 ] ;then
         last_version=$(curl -Ls "https://api.github.com/repos/qtai2901/sc/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}Không thể kiểm tra phiên bản sc, có thể do vượt quá giới hạn API của Github, vui lòng thử lại sau hoặc cài đặt phiên bản sc thủ công${plain}"
+            echo -e "${red}检测 sc 版本失败，可能是超出 Github API 限制，请稍后再试，或手动指定 sc 版本安装${plain}"
             exit 1
         fi
-        echo -e "Phát hiện phiên bản mới nhất của sc：${last_version}，bắt đầu cài đặt"
+        echo -e "检测到 sc 最新版本：${last_version}，开始安装"
         wget -q -N --no-check-certificate -O /usr/local/sc/sc-linux.zip https://github.com/qtai2901/sc/releases/download/${last_version}/sc-linux-${arch}.zip
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Tải xuống sc thất bại, vui lòng kiểm tra khả năng tải file từ Github của máy chủ của bạn${plain}"
+            echo -e "${red}下载 sc 失败，请确保你的服务器能够下载 Github 的文件${plain}"
             exit 1
         fi
     else
         last_version=$1
         url="https://github.com/qtai2901/sc/releases/download/${last_version}/sc-linux-${arch}.zip"
-        echo -e "Bắt đầu cài đặt sc $1"
+        echo -e "开始安装 sc $1"
         wget -q -N --no-check-certificate -O /usr/local/sc/sc-linux.zip ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Tải xuống sc $1 thất bại, vui lòng kiểm tra xem phiên bản này có tồn tại không${plain}"
+            echo -e "${red}下载 sc $1 失败，请确保此版本存在${plain}"
             exit 1
         fi
     fi
@@ -142,17 +142,18 @@ install_sc() {
     rm /etc/systemd/system/sc.service -f
     file="https://github.com/qtai2901/sc-script/raw/master/sc.service"
     wget -q -N --no-check-certificate -O /etc/systemd/system/sc.service ${file}
+    #cp -f sc.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl stop sc
     systemctl enable sc
-    echo -e "${green}Cài đặt sc ${last_version}${plain} hoàn tất, đã thiết lập khởi động cùng hệ thống"
+    echo -e "${green}sc ${last_version}${plain} 安装完成，已设置开机自启"
     cp geoip.dat /etc/sc/
     cp geosite.dat /etc/sc/
 
     if [[ ! -f /etc/sc/config.json ]]; then
         cp config.json /etc/sc/
         echo -e ""
-        echo -e "Đây là lần cài đặt đầu tiên, vui lòng tham khảo hướng dẫn: https://github.com/qtai2901/sc/tree/master/example để cấu hình thông tin cần thiết"
+        echo -e "全新安装，请先参看教程：https://github.com/qtai2901/sc/tree/master/example，配置必要的内容"
         first_install=true
     else
         systemctl start sc
@@ -160,9 +161,9 @@ install_sc() {
         check_status
         echo -e ""
         if [[ $? == 0 ]]; then
-            echo -e "${green}sc khởi động lại thành công${plain}"
+            echo -e "${green}sc 重启成功${plain}"
         else
-            echo -e "${red}sc có thể đã khởi động thất bại, vui lòng kiểm tra thông tin nhật ký sc sau đó, nếu không thể khởi động có thể do thay đổi cấu trúc cấu hình, vui lòng xem wiki tại: https://github.com/sc-project/sc/wiki${plain}"
+            echo -e "${red}sc 可能启动失败，请稍后使用 sc log 查看日志信息，若无法启动，则可能更改了配置格式，请前往 wiki 查看：https://github.com/sc-project/sc/wiki${plain}"
         fi
         first_install=false
     fi
@@ -179,7 +180,7 @@ install_sc() {
     if [[ ! -f /etc/sc/custom_inbound.json ]]; then
         cp custom_inbound.json /etc/sc/
     fi
-    curl -o /usr/bin/sc -Ls https://raw.githubusercontent.com/qtai2901/sc-script/master/sc.sh
+    curl -o /usr/bin/sc -Ls https://raw.githubusercontent.com/qtai2910/sc-script/master/sc.sh
     chmod +x /usr/bin/sc
     if [ ! -L /usr/bin/sc ]; then
         ln -s /usr/bin/sc /usr/bin/sc
@@ -188,16 +189,40 @@ install_sc() {
     cd $cur_dir
     rm -f install.sh
     echo -e ""
-    echo "Hướng dẫn sử dụng script quản lý sc (tương thích với việc thực thi sc, không phân biệt chữ hoa chữ thường):"
+    echo "sc 管理脚本使用方法 (兼容使用sc执行，大小写不敏感): "
     echo "------------------------------------------"
-    echo "sc              - Hiển thị menu quản lý (nhiều chức năng hơn)"
-    echo "sc start        - Khởi động sc"
-    echo "sc stop         - Dừng sc"
-    echo "sc restart      - Khởi động lại sc"
-    echo "sc status       - Xem trạng thái sc"
-    echo "sc enable       - Bật sc"
-    echo "sc disable      - Tắt sc"
-    echo "sc log          - Xem nhật ký sc"
-    echo "sc x25519       - Tạo khóa riêng sc cho reality"
-    echo "sc generate     - Tạo file cấu hình sc"
-    echo "
+    echo "sc              - 显示管理菜单 (功能更多)"
+    echo "sc start        - 启动 sc"
+    echo "sc stop         - 停止 sc"
+    echo "sc restart      - 重启 sc"
+    echo "sc status       - 查看 sc 状态"
+    echo "sc enable       - 设置 sc 开机自启"
+    echo "sc disable      - 取消 sc 开机自启"
+    echo "sc log          - 查看 sc 日志"
+    echo "sc x25519       - 生成 x25519 密钥"
+    echo "sc generate     - 生成 sc 配置文件"
+    echo "sc update       - 更新 sc"
+    echo "sc update x.x.x - 更新 sc 指定版本"
+    echo "sc install      - 安装 sc"
+    echo "sc uninstall    - 卸载 sc"
+    echo "sc version      - 查看 sc 版本"
+    echo "------------------------------------------"
+    # 首次安装询问是否生成配置文件
+    if [[ $first_install == true ]]; then
+        read -rp "检测到你为第一次安装sc,是否自动直接生成配置文件？(y/n): " if_generate
+        if [[ $if_generate == [Yy] ]]; then
+            curl -o ./initconfig.sh -Ls https://raw.githubusercontent.com/qtai2901/sc-script/master/initconfig.sh
+            source initconfig.sh
+            rm initconfig.sh -f
+            generate_config_file
+            read -rp "是否安装bbr内核 ?(y/n): " if_install_bbr
+            if [[ $if_install_bbr == [Yy] ]]; then
+                install_bbr
+            fi
+        fi
+    fi
+}
+
+echo -e "${green}开始安装${plain}"
+install_base
+install_sc $1
